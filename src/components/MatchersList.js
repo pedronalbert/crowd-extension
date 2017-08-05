@@ -11,7 +11,7 @@ export default {
     const children = [
       h('tr', [
         h('th', 'Keywords'),
-        h('th', 'minTasks'),
+        h('th', '# Tasks'),
         h('th', 'actions'),
       ]),
       this.matchers.map((matcher) => h(

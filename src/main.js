@@ -1,9 +1,12 @@
 import Vue from 'vue';
 import moment from 'moment';
+import { get, assign } from 'lodash';
 
 import MatchersList from './components/MatchersList';
 import MatchersForm from './components/MatchersForm';
+import ServerSelect from './components/ServerSelect';
 import matchersStorage from './utils/matchersStorage';
+import configStorage from './utils/configStorage';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -11,6 +14,7 @@ new Vue({
   el: '#app',
 
   created() {
+    this.loadConfig();
     this.loadMatchers();
     this.loadNextCheckTime();
 
@@ -22,7 +26,8 @@ new Vue({
   data() {
     return {
       matchers: [],
-      nextCheckTimeAgo: 'right now',
+      nextCheckTimeAgo: 'calculating...',
+      config: {},
     };
   },
 
@@ -38,6 +43,15 @@ new Vue({
       });
     },
 
+    loadConfig() {
+      configStorage.all()
+        .then((configs) => {
+          console.log(configs);
+
+          this.config = configs;
+        });
+    },
+
     onSubmitMatcher(matcher) {
       matchersStorage.add(matcher)
         .then(m => this.matchers.push(m));
@@ -46,6 +60,11 @@ new Vue({
     onDeleteMatcher(id) {
       matchersStorage.remove(id);
       this.matchers = this.matchers.filter(m => m.id !== id);
+    },
+
+    onChangeServer(server) {
+      configStorage.add({ server });
+      assign(this.config, { server });
     },
 
     updateNextCheckTimeAgo() {
@@ -60,6 +79,15 @@ new Vue({
       h(MatchersForm, { on: {
         submit: this.onSubmitMatcher,
       }}),
+      h(ServerSelect, {
+        class: 'mt-3',
+        props: {
+          value: this.config.server,
+        },
+        on: {
+          input: this.onChangeServer,
+        },
+      }),
       h(MatchersList, {
         class: 'mt-3',
         props: { matchers: this.matchers },
