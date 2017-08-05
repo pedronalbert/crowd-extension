@@ -2,6 +2,18 @@ const TASKS_URL = 'https://tasks.crowdflower.com/channels/neodev/tasks';
 const NOTI_ICON = '/assets/images/crowd-logo.jpg';
 const NOTI_AUDIO = new Audio('/assets/audios/notification.mp3');
 
+function getTasksUrl() {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get('config', (r) => {
+      if (r && r.config && r.config.server) {
+        resolve(`https://tasks.crowdflower.com/channels/${r.config.server}/tasks`);
+      } else {
+        reject(Error('No has seleccionado un servidor'));
+      }
+    });
+  });
+}
+
 function getMatchers() {
   return new Promise((resolve) => {
     chrome.storage.local.get('matchers', (res) => {
@@ -10,10 +22,10 @@ function getMatchers() {
   });
 }
 
-function getCrowdPage() {
+function getCrowdPage(url) {
   return new Promise((resolve, reject) => {
     $.ajax({
-      url: TASKS_URL,
+      url,
       method: 'GET',
       dataType: 'html',
     })
@@ -63,8 +75,12 @@ function notifyTasks(tasks) {
   );
 
   notification.onclick = () => {
-    url = tasks.length === 1 ?  `${TASKS_URL}/${tasks[0].id}` : TASKS_URL;
-    chrome.tabs.create({ url });
+    getTasksUrl()
+      .then(tasksUrl => {
+        const url = tasks.length === 1 ?  `${tasksUrl}/${tasks[0].id}` : tasksUrl;
+
+        chrome.tabs.create({ url });
+      });
   }
 
   NOTI_AUDIO.play();
@@ -73,7 +89,8 @@ function notifyTasks(tasks) {
 }
 
 function check(matchers) {
-  return getCrowdPage()
+  return getTasksUrl()
+    .then(getCrowdPage)
     .then(getTasks)
     .then(tasks => getAlertableTasks(tasks, matchers))
     .then(tasks => {
