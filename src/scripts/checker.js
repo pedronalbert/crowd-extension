@@ -1,5 +1,6 @@
 const TASKS_URL = 'https://tasks.crowdflower.com/channels/neodev/tasks';
 const NOTI_ICON = '/assets/images/crowd-logo.jpg';
+const NOTI_AUDIO = new Audio('/assets/audios/notification.mp3');
 
 function getMatchers() {
   return new Promise((resolve) => {
@@ -65,10 +66,14 @@ function notifyTasks(tasks) {
     url = tasks.length === 1 ?  `${TASKS_URL}/${tasks[0].id}` : TASKS_URL;
     chrome.tabs.create({ url });
   }
+
+  NOTI_AUDIO.play();
+
+  setTimeout(notification.close.bind(notification), 5e3);
 }
 
 function check(matchers) {
-  getCrowdPage()
+  return getCrowdPage()
     .then(getTasks)
     .then(tasks => getAlertableTasks(tasks, matchers))
     .then(tasks => {
@@ -77,21 +82,32 @@ function check(matchers) {
       }
     })
     .catch(err => {
-      new Notification('Error', {
+      const notification = new Notification('Error', {
         icon: NOTI_ICON,
         body: err.message,
       });
+
+      setTimeout(notification.close.bind(notification), 5e3);
     });
+}
+
+function saveNextCheckTime(nextCheckTime) {
+  chrome.storage.local.set({ nextCheckTime });
+}
+
+function scheduleNextCheck() {
+    const nextCheckMS = Math.floor(Math.random() * (45e3 - 35e3)) + 35e3;
+
+    saveNextCheckTime(Date.now() + nextCheckMS);
+
+    setTimeout(init, nextCheckMS);
 }
 
 function init() {
   getMatchers()
-    .then((matchers) => {
-      if (matchers.length > 0) {
-        check(matchers);
-      }
-    });
+    .then(check)
+    .then(scheduleNextCheck)
+    .catch(scheduleNextCheck)
 }
 
 init();
-setInterval(init,  Math.floor(Math.random() * (35 * 1000)) + (50 * 1000))
