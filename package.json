@@ -1,6 +1,6 @@
 {
   "name": "crowd-extension",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Crowdflower Alert",
   "main": "index.js",
   "scripts": {
@@ -24,6 +24,7 @@
     "moment": "^2.18.1",
     "style-loader": "^0.18.2",
     "uuid": "^3.1.0",
-    "vue": "^2.4.2"
+    "vue": "^2.4.2",
+    "vue-router": "^2.7.0"
   }
 }

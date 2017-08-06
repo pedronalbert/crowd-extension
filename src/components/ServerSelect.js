@@ -22,19 +22,20 @@ export default {
     const options = SERVERS.map(server => h('option', {
       attrs: {
         value: server.value,
-        selected: this.value === server.value,
       },
     }, server.text));
 
     options.unshift(h('option', {
       attrs: {
         value: '',
-        selected: !this.value,
       },
     }, 'Select Server'));
 
     const select  = h('select', {
       class: 'form-control form-control-sm',
+      domProps: {
+        value: this.value,
+      },
       on: {
         input: this.onInput,
       },

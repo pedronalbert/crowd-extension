@@ -9,7 +9,7 @@ export default {
 
   data() {
     return {
-      keywords: null,
+      keywords: '',
       minTasks: 0,
     };
   },
@@ -23,7 +23,7 @@ export default {
         minTasks: this.minTasks,
       });
 
-      this.keywords = null;
+      this.keywords = '';
       this.minTask = 0;
     },
   },
@@ -36,9 +36,11 @@ export default {
           h('div', { class: 'col-8' }, [
             h('input', {
               class: 'form-control form-control-sm',
+              domProps: {
+                value: this.keywords,
+              },
               attrs: {
                 placeholder: 'clothing,catego',
-                value: this.keywords,
               },
               on: {
                 input: e => this.keywords = e.target.value,
@@ -51,9 +53,11 @@ export default {
           h('div', { class: 'col-8' }, [
             h('input', {
               class: 'form-control form-control-sm',
+              domProps: {
+                value: this.minTasks,
+              },
               attrs: {
                 type: 'number',
-                value: this.minTasks,
               },
               on: {
                 input: e => this.minTasks = e.target.value,
