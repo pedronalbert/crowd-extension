@@ -1,7 +1,10 @@
+const URLS = [
+  'http://tasks.crowdflower.com/*',
+  'https://tasks.crowdflower.com/*'
+];
+
 var responseListener = function(details){
-  details.responseHeaders.push({"name": "Access-Control-Allow-Headers", "value": accessControlRequestHeaders});
-  details.responseHeaders.push({"name": "Access-Control-Expose-Headers", "value": exposedHeaders});
-  details.responseHeaders.push({"name": "Access-Control-Allow-Methods", "value": "GET, PUT, POST, DELETE, HEAD, OPTIONS"});
+  details.responseHeaders.push({ name: 'Access-Control-Allow-Origin', value: '*' });
 
   return {responseHeaders: details.responseHeaders};
 };
@@ -16,9 +19,9 @@ function requestListener(details) {
 
 /*On install*/
 chrome.webRequest.onHeadersReceived.addListener(responseListener, {
-  urls: '<all_urls>',
+  urls: URLS,
 }, ['blocking', 'responseHeaders']);
 
 chrome.webRequest.onBeforeSendHeaders.addListener(requestListener, {
-  urls: '<all_urls>',
+  urls: URLS,
 },["blocking", "requestHeaders"]);
