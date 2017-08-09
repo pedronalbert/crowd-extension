@@ -58,7 +58,7 @@ function getAlertableTasks(tasks, matchers) {
       const { keywords, minTasks } = matcher;
 
       return keywords
-        .every(kw.toLoweCase() => task.title.toLowerCase().includes(kw)) &&
+        .every(kw => task.title.toLowerCase().includes(kw.toLowerCase())) &&
         task.nTasks >= minTasks;
     });
 	});
