@@ -3,7 +3,7 @@ export default {
   name: 'NavTabs',
 
   methods: {
-    genTab(h, { to, text, active = false }) {
+    genTab(h, { to, text }) {
       return h('li', { class: 'nav-item'}, [
         h('router-link', {
           class: 'nav-link',
