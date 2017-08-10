@@ -22,6 +22,16 @@ function getMatchers() {
   });
 }
 
+function getActiveTaskId() {
+  return new Promise((resolve) => {
+    chrome.tabs.executeScript(null, {
+      code: `document.getElementById('assignment-job-id').innerText`,
+    }, (results) => {
+      resolve(results && parseInt(results[0], 10) || null);
+    });
+  });
+}
+
 function getCrowdPage(url) {
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -53,15 +63,25 @@ function getTasks($pageContent) {
 }
 
 function getAlertableTasks(tasks, matchers) {
-	return tasks.filter((task) => {
-    return matchers.some((matcher) => {
-      const { keywords, minTasks } = matcher;
+  return new Promise((resolve) => {
+    getActiveTaskId()
+      .then(activeTaskId => {
+        console.debug('Active task ID', activeTaskId);
 
-      return keywords
-        .every(kw => task.title.toLowerCase().includes(kw.toLowerCase())) &&
-        task.nTasks >= minTasks;
-    });
-	});
+        return tasks.filter((task) => {
+          if (activeTaskId === task.id) return false;
+
+          return matchers.some((matcher) => {
+            const { keywords, minTasks } = matcher;
+
+            return keywords
+              .every(kw => task.title.toLowerCase().includes(kw.toLowerCase())) &&
+              task.nTasks >= minTasks;
+          });
+        });
+      })
+      .then(resolve);
+  });
 }
 
 
