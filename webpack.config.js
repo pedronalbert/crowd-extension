@@ -2,6 +2,7 @@ const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const babel = require('babel-core');
 
 module.exports = {
   entry: './src/main.js',
@@ -34,7 +35,12 @@ module.exports = {
     new CopyWebpackPlugin([
       {
         from: 'src/scripts',
-        to: 'scripts'
+        to: 'scripts',
+        transform: function (content) {
+          return babel.transform(content, {
+            presets: ['stage-0', 'es2015'],
+          }).code;
+        },
       },
       {
         from: 'src/assets',

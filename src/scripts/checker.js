@@ -2,91 +2,82 @@ const TASKS_URL = 'https://tasks.crowdflower.com/channels/neodev/tasks';
 const NOTI_ICON = '/assets/images/crowd-logo.jpg';
 const NOTI_AUDIO = new Audio('/assets/audios/notification.mp3');
 
-function getTasksUrl() {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get('config', (r) => {
-      if (r && r.config && r.config.server) {
-        resolve(`https://tasks.crowdflower.com/channels/${r.config.server}/tasks`);
+const getTasksUrl = () => new Promise((resolve, reject) => {
+  chrome.storage.local.get('config', (r) => {
+    if (r && r.config && r.config.server) {
+      resolve(`https://tasks.crowdflower.com/channels/${r.config.server}/tasks`);
+    } else {
+      reject(Error('No has seleccionado un servidor'));
+    }
+  });
+})
+
+const getMatchers = () => new Promise((resolve) => {
+  chrome.storage.local.get(
+    'matchers',
+    res => resolve(res.matchers || []),
+  );
+});
+
+
+const getActiveTaskId = () => new Promise((resolve) => {
+  chrome.tabs.executeScript(null, {
+    code: `document.getElementById('assignment-job-id').innerText`,
+  }, (results) => {
+    resolve(results && parseInt(results[0], 10) || null);
+  });
+})
+
+const getCrowdPage = (url) => new Promise((resolve, reject) => {
+  $.ajax({
+    url,
+    method: 'GET',
+    dataType: 'html',
+  })
+    .done((data) => {
+      resolve($(data).find('#content').first());
+    })
+    .fail((err) => {
+      if (err.status === 404) {
+        reject(Error('No has iniciado session'));
       } else {
-        reject(Error('No has seleccionado un servidor'));
+        reject(Error('No se ha podido cargar la lista de tareas'));
       }
     });
-  });
-}
+});
 
-function getMatchers() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get('matchers', (res) => {
-      resolve(res.matchers || []);
+
+const getTasks = ($pageContent) => $pageContent
+  .find('#task-listing-datatable')
+  .data('tasks')
+  .map(data => ({
+    id: data[0],
+    title: data[1],
+    nTasks: data[5],
+  }));
+
+const getAlertableTasks = async (tasks, matchers) =>  {
+  const activeTaskId = await getActiveTaskId();
+
+  console.debug('Active task ID', activeTaskId);
+
+  const alertableTasks = tasks.filter((task) => {
+    if (activeTaskId === task.id) return false;
+
+    return matchers.some((matcher) => {
+      const { keywords, minTasks } = matcher;
+
+      return keywords
+        .every(kw => task.title.toLowerCase().includes(kw.toLowerCase())) &&
+        task.nTasks >= minTasks;
     });
   });
-}
 
-function getActiveTaskId() {
-  return new Promise((resolve) => {
-    chrome.tabs.executeScript(null, {
-      code: `document.getElementById('assignment-job-id').innerText`,
-    }, (results) => {
-      resolve(results && parseInt(results[0], 10) || null);
-    });
-  });
-}
+  return Promise.resolve(alertableTasks);
+};
 
-function getCrowdPage(url) {
-  return new Promise((resolve, reject) => {
-    $.ajax({
-      url,
-      method: 'GET',
-      dataType: 'html',
-    })
-      .done((data) => {
-        resolve($(data).find('#content').first());
-      })
-      .fail((err) => {
-        if (err.status === 404) {
-          reject(Error('No has iniciado session'));
-        } else {
-          reject(Error('No se ha podido cargar la lista de tareas'));
-        }
-      });
-  });
-}
-
-function getTasks($pageContent) {
-  return $pageContent.find('#task-listing-datatable')
-    .data('tasks')
-    .map(data => ({
-      id: data[0],
-      title: data[1],
-      nTasks: data[5],
-    }));
-}
-
-function getAlertableTasks(tasks, matchers) {
-  return new Promise((resolve) => {
-    getActiveTaskId()
-      .then(activeTaskId => {
-        console.debug('Active task ID', activeTaskId);
-
-        return tasks.filter((task) => {
-          if (activeTaskId === task.id) return false;
-
-          return matchers.some((matcher) => {
-            const { keywords, minTasks } = matcher;
-
-            return keywords
-              .every(kw => task.title.toLowerCase().includes(kw.toLowerCase())) &&
-              task.nTasks >= minTasks;
-          });
-        });
-      })
-      .then(resolve);
-  });
-}
-
-
-function notifyTasks(tasks) {
-  body = tasks.reduce((body, { title, nTasks }) => body + `(${nTasks}) ${title}\n`, '');
+const notifyTasks = (tasks) => {
+  const body = tasks.reduce((body, { title, nTasks }) => body + `(${nTasks}) ${title}\n`, '');
 
   const notification = new Notification('Nuevas Tareas', {
       body,
@@ -94,57 +85,63 @@ function notifyTasks(tasks) {
     }
   );
 
-  notification.onclick = () => {
-    getTasksUrl()
-      .then(tasksUrl => {
-        const url = tasks.length === 1 ?  `${tasksUrl}/${tasks[0].id}` : tasksUrl;
+  notification.onclick = async () => {
+    const tasksUrl = await getTasksUrl();
+    const url = tasks.length === 1 ?  `${tasksUrl}/${tasks[0].id}` : tasksUrl;
 
-        chrome.tabs.create({ url });
-      });
-  }
+    chrome.tabs.create({ url });
+  };
 
   NOTI_AUDIO.play();
 
   setTimeout(notification.close.bind(notification), 5e3);
-}
+};
 
-function check(matchers) {
-  return getTasksUrl()
-    .then(getCrowdPage)
-    .then(getTasks)
-    .then(tasks => getAlertableTasks(tasks, matchers))
-    .then(tasks => {
-      if (tasks.length > 0) {
-        notifyTasks(tasks);
-      }
-    })
-    .catch(err => {
-      const notification = new Notification('Error', {
-        icon: NOTI_ICON,
-        body: err.message,
-      });
 
-      setTimeout(notification.close.bind(notification), 5e3);
+const check = async (matchers) => {
+  try {
+    const tasksUrl = await getTasksUrl();
+    const crowdPage = await getCrowdPage(tasksUrl);
+    const tasks = await getTasks(crowdPage);
+    const alertableTasks = await getAlertableTasks(tasks, matchers);
+
+    console.log(alertableTasks);
+
+    if (alertableTasks.length > 0) {
+      notifyTasks(alertableTasks);
+    }
+  } catch ({ message }) {
+    const notification = new Notification('Error', {
+      icon: NOTI_ICON,
+      body: message,
     });
+
+    setTimeout(notification.close.bind(notification), 7e3);
+  }
 }
 
-function saveNextCheckTime(nextCheckTime) {
+const saveNextCheckTime = (nextCheckTime) => {
   chrome.storage.local.set({ nextCheckTime });
 }
 
-function scheduleNextCheck() {
-    const nextCheckMS = Math.floor(Math.random() * (45e3 - 35e3)) + 35e3;
+const scheduleNextCheck = () => {
+    const nextCheckMS = Math.floor(Math.random() * (35e3 - 25e3)) + 25e3;
 
     saveNextCheckTime(Date.now() + nextCheckMS);
 
     setTimeout(init, nextCheckMS);
 }
 
-function init() {
-  getMatchers()
-    .then(check)
-    .then(scheduleNextCheck)
-    .catch(scheduleNextCheck)
+const init = async () => {
+  try {
+    const matchers = await getMatchers();
+
+    if (matchers.length > 0) check(matchers);
+  } catch (error) {
+    console.error(error);
+  }
+
+  scheduleNextCheck();
 }
 
 init();

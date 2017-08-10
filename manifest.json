@@ -18,6 +18,7 @@
   "background": {
     "persistent": true,
     "scripts": [
+      "vendor/polyfill.min.js",
       "vendor/jquery-3.2.1.min.js",
       "scripts/cors.js",
       "scripts/checker.js"
