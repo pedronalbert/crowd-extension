@@ -1,6 +1,6 @@
 const SERVERS = [
   { text: 'Neobux', value: 'neodev' },
-  { text: 'EliteMierdower', value: 'elite' },
+  { text: 'Elite', value: 'elite' },
 ];
 
 export default {

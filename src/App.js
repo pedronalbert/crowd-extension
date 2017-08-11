@@ -38,9 +38,28 @@ export default {
     const children = [
       h(NavTabs, { class: 'mb-4' }),
       h('router-view'),
-      h('div', {
-        class: 'text-right',
-      }, 'Next Check: ' + this.nextCheckTimeAgo),
+      h('div', { class: 'd-flex' }, [
+        h('a', {
+          attrs: {
+            href: 'https://www.paypal.me/pedronalbert',
+            target: '_blank',
+          },
+        }, [
+          h('img', {
+            style: {
+              width: '4em',
+            },
+            attrs: {
+              title: 'Donate',
+              src: './assets/icons/paypal_donate.png',
+            },
+          }),
+        ]),
+        h('div', {
+          class: 'text-right flex',
+          style: { flex: 1 },
+        }, 'Next Check: ' + this.nextCheckTimeAgo),
+      ])
     ];
 
     return h('div', children);

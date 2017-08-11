@@ -1,13 +1,41 @@
 const TASKS_URL = 'https://tasks.crowdflower.com/channels/neodev/tasks';
 const NOTI_ICON = '/assets/images/crowd-logo.jpg';
+const NOTI_ICON_RED = '/assets/images/crowd-logo-red.jpg';
 const NOTI_AUDIO = new Audio('/assets/audios/notification.mp3');
+
+let ERROR = null;
+let nextCheckTimeout;
+
+class NoServerError extends Error {
+  constructor() {
+    super('No ha seleccionado un servidor');
+  }
+}
+
+class NoActiveMatchersError extends Error {
+  constructor() {
+    super('No ha agregado matchers');
+  }
+}
+
+class SignInError extends Error {
+  constructor() {
+    super('No has iniciado session');
+  }
+}
+
+class FetchError extends Error {
+  constructor() {
+    super('No se ha podido obtener la lista de tareas');
+  }
+}
 
 const getTasksUrl = () => new Promise((resolve, reject) => {
   chrome.storage.local.get('config', (r) => {
     if (r && r.config && r.config.server) {
       resolve(`https://tasks.crowdflower.com/channels/${r.config.server}/tasks`);
     } else {
-      reject(Error('No has seleccionado un servidor'));
+      reject(new NoServerError());
     }
   });
 })
@@ -39,9 +67,9 @@ const getCrowdPage = (url) => new Promise((resolve, reject) => {
     })
     .fail((err) => {
       if (err.status === 404) {
-        reject(Error('No has iniciado session'));
+        throw new SignInError();
       } else {
-        reject(Error('No se ha podido cargar la lista de tareas'));
+        throw new FetchError();
       }
     });
 });
@@ -99,24 +127,13 @@ const notifyTasks = (tasks) => {
 
 
 const check = async (matchers) => {
-  try {
-    const tasksUrl = await getTasksUrl();
-    const crowdPage = await getCrowdPage(tasksUrl);
-    const tasks = await getTasks(crowdPage);
-    const alertableTasks = await getAlertableTasks(tasks, matchers);
+  const tasksUrl = await getTasksUrl();
+  const crowdPage = await getCrowdPage(tasksUrl);
+  const tasks = await getTasks(crowdPage);
+  const alertableTasks = await getAlertableTasks(tasks, matchers);
 
-    console.log(alertableTasks);
-
-    if (alertableTasks.length > 0) {
-      notifyTasks(alertableTasks);
-    }
-  } catch ({ message }) {
-    const notification = new Notification('Error', {
-      icon: NOTI_ICON,
-      body: message,
-    });
-
-    setTimeout(notification.close.bind(notification), 7e3);
+  if (alertableTasks.length > 0) {
+    notifyTasks(alertableTasks);
   }
 }
 
@@ -129,7 +146,42 @@ const scheduleNextCheck = () => {
 
     saveNextCheckTime(Date.now() + nextCheckMS);
 
-    setTimeout(init, nextCheckMS);
+    nextCheckTimeout = setTimeout(init, nextCheckMS);
+}
+
+const cancelNextCheck = () => {
+  clearTimeout(nextCheckTimeout);
+};
+
+const changeActionIcon = (name) => {
+  const path = `assets/icons/${name}.png`
+
+  chrome.browserAction.setIcon({
+    path,
+  });
+};
+
+const showInactiveIcon = () => changeActionIcon('icon_red48');
+
+const showActiveIcon = () => changeActionIcon('icon48');
+
+const setError = (error) => {
+  if (ERROR !== error) {
+    const notification = new Notification('Algo ha salido mal', {
+      body: error.message,
+      icon: NOTI_ICON_RED,
+    });
+
+    ERROR = error;
+    showInactiveIcon();
+  }
+};
+
+const clearError = () => {
+  if (ERROR) {
+    ERROR = null;
+    showActiveIcon();
+  }
 }
 
 const init = async () => {
@@ -138,8 +190,16 @@ const init = async () => {
   try {
     const matchers = await getMatchers();
 
-    if (matchers.length > 0) check(matchers);
+    if (matchers.length > 0) {
+      clearError();
+
+      await check(matchers);
+    } else {
+      throw new NoActiveMatchersError();
+    }
   } catch (error) {
+    setError(error);
+
     console.error(error);
   }
 

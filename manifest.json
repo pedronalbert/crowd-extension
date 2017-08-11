@@ -2,13 +2,10 @@
   "manifest_version": 2,
   "name": "CrowdFlower",
   "description": "CrowdFlower tasks alert",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "browser_action": {
     "default_popup": "index.html",
-    "default_icon": {
-      "19": "assets/icons/icon19.png",
-      "38": "assets/icons/icon38.png"
-    }
+    "default_icon": "assets/icons/icon48.png"
   },
   "icons": {
     "16": "assets/icons/icon16.png",
