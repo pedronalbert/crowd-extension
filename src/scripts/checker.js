@@ -133,6 +133,8 @@ const scheduleNextCheck = () => {
 }
 
 const init = async () => {
+  console.debug('Checker init');
+
   try {
     const matchers = await getMatchers();
 
