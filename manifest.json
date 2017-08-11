@@ -31,6 +31,6 @@
     "storage",
     "tabs",
     "activeTab",
-    "<all_urls>"
+    "*://tasks.crowdflower.com/*"
   ]
 }

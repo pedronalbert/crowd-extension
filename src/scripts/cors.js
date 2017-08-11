@@ -1,6 +1,5 @@
 const URLS = [
-  'http://tasks.crowdflower.com/*',
-  'https://tasks.crowdflower.com/*'
+  '*://tasks.crowdflower.com/*',
 ];
 
 var responseListener = function(details){
