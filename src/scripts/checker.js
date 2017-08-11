@@ -67,9 +67,9 @@ const getCrowdPage = (url) => new Promise((resolve, reject) => {
     })
     .fail((err) => {
       if (err.status === 404) {
-        throw new SignInError();
+        reject(new SignInError());
       } else {
-        throw new FetchError();
+        reject(new FetchError());
       }
     });
 });
@@ -166,7 +166,7 @@ const showInactiveIcon = () => changeActionIcon('icon_red48');
 const showActiveIcon = () => changeActionIcon('icon48');
 
 const setError = (error) => {
-  if (ERROR !== error) {
+  if (!ERROR || ERROR.message !== error.message) {
     const notification = new Notification('Algo ha salido mal', {
       body: error.message,
       icon: NOTI_ICON_RED,
