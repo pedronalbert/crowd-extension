@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "CrowdFlower",
   "description": "CrowdFlower tasks alert",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "browser_action": {
     "default_popup": "index.html",
     "default_icon": {
@@ -31,6 +31,7 @@
     "storage",
     "tabs",
     "activeTab",
-    "*://*.crowdflower.*/*"
+    "*://tasks.crowdflower.com/*",
+    "*://render.crowdflower.io/*"
   ]
 }
