@@ -191,9 +191,9 @@ const init = async () => {
     const matchers = await getMatchers();
 
     if (matchers.length > 0) {
-      clearError();
-
       await check(matchers);
+
+      clearError();
     } else {
       throw new NoActiveMatchersError();
     }
