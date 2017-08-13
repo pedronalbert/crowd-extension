@@ -1,6 +1,6 @@
 {
   "name": "crowd-extension",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Crowdflower Alert",
   "main": "index.js",
   "scripts": {
